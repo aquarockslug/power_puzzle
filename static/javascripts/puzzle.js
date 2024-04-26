@@ -1,4 +1,4 @@
-class Jigsaw extends Phaser.Scene {
+class Puzzle extends Phaser.Scene {
         preload() {
                 this.load.image('water_wheel', 'water_wheel.png')
                 this.load.image('wood', 'plank.jpg')
@@ -16,7 +16,8 @@ class Jigsaw extends Phaser.Scene {
                         draggable: true
                 }));
 
-                this.parts[2].placeAfter = [this.parts[0]]
+                this.parts[2].placeAfter = [this.parts[0]] // wheel before gear1
+                this.parts[3].placeAfter = [this.parts[4]] // generator before gear2
                 this.parts.forEach(p => p.on('dragend', () => {
                         for (let i in p.placeAfter)
                                 if (!(this.parts[i].placed)) return
@@ -32,14 +33,42 @@ class Jigsaw extends Phaser.Scene {
         createWorld() {
                 this.matter.world.setBounds()
                 this.parts.forEach((p) => {
-                        this.add.circle(p.endPos.x, p.endPos.y, 5, {
+                        this.add.circle(p.config.endPos.x, p.config.endPos.y, 5, {
                                 isStatic: true
                         })
+                })
+                this.createWater()
+        }
+
+        createWater(dropCount = 100, dropsPerSecond = 30) {
+                this.drops = this.add.group({
+                        maxSize: dropCount,
+                        createCallback: (drop) => {
+                                this.matter.add.gameObject(drop, {
+                                        shape: 'circle',
+                                        friction: 0,
+                                        ignorePointer: true
+                                }, true)
+                                drop.setScale(0.4)
+                        }
+                })
+                this.drops.createMultiple({
+                        repeat: dropCount - 1,
+                })
+                new Phaser.Core.TimeStep(this.game, {
+                        forceSetTimeOut: true,
+                        target: dropsPerSecond
+                }).start((time, delta) => {
+                        const drop = this.drops.get(50 + Math.floor(Math.random() * 100), 25)
+                        if (drop) drop.active = true
                 })
         }
 
         update() {
                 this.parts.forEach(p => p.update())
+                this.drops.getChildren().forEach((d) => {
+                        if (d.y > config.height - 25) this.drops.kill(d)
+                })
         }
 
         createParts(center) {
@@ -54,17 +83,17 @@ class Jigsaw extends Phaser.Scene {
                                 endAngle: 0,
                                 endPos: new v2(center.x, center.y)
                                         .add(new v2(0, 100))
-                        }).setScale(0.25).setCircle(130),
+                        }).setScale(0.3).setCircle(130),
                         new Part({
                                 name: 'ramp',
                                 scene: this,
                                 x: 350,
                                 y: 400,
                                 texture: 'wood',
-                                endAngle: 20,
+                                endAngle: 10,
                                 endPos: new v2(center.x, center.y)
-                                        .add(new v2(-180, -140))
-                        }).setRectangle(415, 25),
+                                        .add(new v2(-180, -120))
+                        }).setScale(0.17, 0.1).setRectangle(345, 25),
                         new Part({
                                 name: 'gear1',
                                 scene: this,
@@ -102,16 +131,11 @@ class Jigsaw extends Phaser.Scene {
 class Part extends Phaser.GameObjects.Sprite {
         constructor(config) {
                 super(config.scene, config.x, config.y, config.texture)
+                this.config = config
                 config.scene.add.existing(this)
                 config.scene.matter.add.gameObject(this, {}, true)
                 this.setScale(0.2)
-
                 this.placed = false
-                this.endAngle = config.endAngle
-                this.name = config.name
-                this.placeAfter = config.placeAfter
-                this.endPos = config.endPos
-                this.canRotate = config.canRotate
 
                 this.on('drag', this.lift)
 
@@ -121,20 +145,28 @@ class Part extends Phaser.GameObjects.Sprite {
 
         lift(pointer, dragX, dragY) {
                 this.placed = false
-                this.angle = this.endAngle
+                this.angle = this.config.endAngle
                 this.setAngularVelocity(0)
                 this.x = dragX
                 this.y = dragY
         }
 
         tryPlacement() {
+                // ramp doesn't snap into place
+                if (this.config.name == "ramp" && this.nearEndPos(100)) {
+                        this.setStatic(true)
+                        return
+                }
+                // place if near this.endPos
                 if (this.nearEndPos()) this.place()
                 else this.unplace()
         }
 
-        nearEndPos(range = 150) {
+        nearEndPos(range = 50) {
+                // true if position is near this.endPos
                 return (Phaser.Math.Distance.Between(
-                        this.endPos.x, this.endPos.y, this.x, this.y) < range)
+                        this.config.endPos.x, this.config.endPos.y,
+                        this.x, this.y) < range)
         }
 
         place() {
@@ -143,18 +175,18 @@ class Part extends Phaser.GameObjects.Sprite {
 
         unplace() {
                 this.placed = false
+                this.setStatic(false)
         }
 
         update() {
                 if (!this.placed) return
-                this.setPosition(this.endPos.x, this.endPos.y)
+                this.setPosition(this.config.endPos.x, this.config.endPos.y)
 
-                if (this.name != "wheel") this.angle = this.endAngle
-
-                if (this.name == "gear1") {
+                if (this.config.name != "wheel") this.angle = this.config.endAngle
+                if (this.config.name == "gear1") {
                         this.angle = this.scene.parts[0].angle
                 }
-                if (this.name == "gear2" && this.scene.parts[2].placed) {
+                if (this.config.name == "gear2" && this.scene.parts[2].placed) {
                         this.angle = this.scene.parts[0].angle
                 }
         }
@@ -166,7 +198,7 @@ const config = {
         width: 800,
         height: 600,
         backgroundColor: '#1b1464',
-        parent: 'Jigsaw game',
+        parent: 'power puzzle',
         debug: true,
         physics: {
                 default: 'matter',
@@ -174,7 +206,7 @@ const config = {
                         debug: true
                 }
         },
-        scene: Jigsaw
+        scene: Puzzle
 };
 
 const game = new Phaser.Game(config);
