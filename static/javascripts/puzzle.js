@@ -2,9 +2,11 @@ class Puzzle extends Phaser.Scene {
         preload() {
                 this.load.image('water_wheel', 'water_wheel.png')
                 this.load.image('wood', 'plank.jpg')
-                this.load.image('part3', 'arch.png')
-                this.load.image('part4', 'arch.png')
-                this.load.image('part5', 'arch.png')
+                // this.load.image('part3', 'arch.png')
+	        // this.load.image('part4', 'arch.png')
+                // this.load.image('part5', 'arch.png')
+                this.load.image('droplet', 'white.png')
+                this.load.image('background', 'stream.jpg')
         }
 
         create() {
@@ -17,7 +19,6 @@ class Puzzle extends Phaser.Scene {
                 }));
 
                 this.parts[2].placeAfter = [this.parts[0]] // wheel before gear1
-                this.parts[3].placeAfter = [this.parts[4]] // generator before gear2
                 this.parts.forEach(p => p.on('dragend', () => {
                         for (let i in p.placeAfter)
                                 if (!(this.parts[i].placed)) return
@@ -32,34 +33,52 @@ class Puzzle extends Phaser.Scene {
 
         createWorld() {
                 this.matter.world.setBounds()
+                this.add.image(config.width / 3, 0, 'background').setDepth(-1)
                 this.parts.forEach((p) => {
-                        this.add.circle(p.config.endPos.x, p.config.endPos.y, 5, {
-                                isStatic: true
+                        this.add.circle(p.config.endPos.x, p.config.endPos.y, 10, {
+                                isStatic: true,
                         })
                 })
                 this.createWater()
         }
 
-        createWater(dropCount = 100, dropsPerSecond = 30) {
-                this.drops = this.add.group({
+        createWater(dropCount = 200, dropsPerSecond = 50) {
+
+                const dropCallback = (drop) => {
+                        this.matter.add.gameObject(drop, {
+                                shape: 'circle',
+                                friction: 0,
+                                ignorePointer: true,
+                        }, true)
+                        drop.setScale(0.4).setTexture('droplet')
+                }
+
+                const create = (dropGroup) => {
+                        dropGroup.createMultiple({
+                                repeat: dropCount - 1
+                        })
+                }
+
+                const groupConfig = {
                         maxSize: dropCount,
-                        createCallback: (drop) => {
-                                this.matter.add.gameObject(drop, {
-                                        shape: 'circle',
-                                        friction: 0,
-                                        ignorePointer: true
-                                }, true)
-                                drop.setScale(0.4)
-                        }
-                })
-                this.drops.createMultiple({
-                        repeat: dropCount - 1,
-                })
+                        createCallback: dropCallback
+                }
+
+                // pool at bottom
+                this.pool = this.add.group(groupConfig)
+                create(this.pool)
+                for (let i = 0; i < dropCount; i++) {
+                        this.pool.get(i * 15, config.height)
+                }
+
+                // waterfall
+                this.drops = this.add.group(groupConfig)
+                create(this.drops)
                 new Phaser.Core.TimeStep(this.game, {
                         forceSetTimeOut: true,
                         target: dropsPerSecond
                 }).start((time, delta) => {
-                        const drop = this.drops.get(50 + Math.floor(Math.random() * 100), 25)
+                        const drop = this.drops.get(15 + Math.floor(Math.random() * 125), 15)
                         if (drop) drop.active = true
                 })
         }
@@ -77,7 +96,7 @@ class Puzzle extends Phaser.Scene {
                                 name: 'wheel',
                                 scene: this,
                                 x: 100,
-                                y: 500,
+                                y: 400,
                                 texture: 'water_wheel',
                                 canRotate: true,
                                 endAngle: 0,
@@ -92,13 +111,13 @@ class Puzzle extends Phaser.Scene {
                                 texture: 'wood',
                                 endAngle: 10,
                                 endPos: new v2(center.x, center.y)
-                                        .add(new v2(-180, -120))
-                        }).setScale(0.17, 0.1).setRectangle(345, 25),
+                                        .add(new v2(-400, -120))
+                        }).setScale(0.3, 0.1).setRectangle(625, 25),
                         new Part({
                                 name: 'gear1',
                                 scene: this,
                                 x: 500,
-                                y: 500,
+                                y: 400,
                                 texture: 'part3',
                                 endAngle: 90,
                                 endPos: new v2(center.x, center.y)
@@ -108,7 +127,7 @@ class Puzzle extends Phaser.Scene {
                                 name: 'generator',
                                 scene: this,
                                 x: 700,
-                                y: 300,
+                                y: 400,
                                 texture: 'part5',
                                 endAngle: 90,
                                 endPos: new v2(center.x, center.y)
@@ -118,7 +137,7 @@ class Puzzle extends Phaser.Scene {
                                 name: 'gear2',
                                 scene: this,
                                 x: 700,
-                                y: 500,
+                                y: 400,
                                 texture: 'part4',
                                 endAngle: 90,
                                 endPos: new v2(center.x, center.y)
@@ -153,7 +172,7 @@ class Part extends Phaser.GameObjects.Sprite {
 
         tryPlacement() {
                 // ramp doesn't snap into place
-                if (this.config.name == "ramp" && this.nearEndPos(100)) {
+                if (this.config.name == "ramp" && this.nearEndPos(300)) {
                         this.setStatic(true)
                         return
                 }
@@ -195,15 +214,15 @@ class Part extends Phaser.GameObjects.Sprite {
 const v2 = Phaser.Math.Vector2
 const config = {
         type: Phaser.AUTO,
-        width: 800,
-        height: 600,
+        width: 1280,
+        height: 720,
         backgroundColor: '#1b1464',
         parent: 'power puzzle',
         debug: true,
         physics: {
                 default: 'matter',
                 matter: {
-                        debug: true
+                        // debug: true
                 }
         },
         scene: Puzzle
