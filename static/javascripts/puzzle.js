@@ -3,10 +3,11 @@ class Puzzle extends Phaser.Scene {
                 this.load.image('water_wheel', 'water_wheel.png')
                 this.load.image('wood', 'plank.jpg')
                 // this.load.image('part3', 'arch.png')
-	        // this.load.image('part4', 'arch.png')
+                // this.load.image('part4', 'arch.png')
                 // this.load.image('part5', 'arch.png')
                 this.load.image('droplet', 'white.png')
                 this.load.image('background', 'stream.jpg')
+                this.load.json("sprites", "sprite-physics.json");
         }
 
         create() {
@@ -47,8 +48,10 @@ class Puzzle extends Phaser.Scene {
                 const dropCallback = (drop) => {
                         this.matter.add.gameObject(drop, {
                                 shape: 'circle',
-                                friction: 0,
                                 ignorePointer: true,
+                                friction: 0,
+                                frictionAir: 0.02,
+                                mass: 1
                         }, true)
                         drop.setScale(0.4).setTexture('droplet')
                 }
@@ -100,9 +103,10 @@ class Puzzle extends Phaser.Scene {
                                 texture: 'water_wheel',
                                 canRotate: true,
                                 endAngle: 0,
+                                shape: this.cache.json.get("sprites")['water_wheel'],
                                 endPos: new v2(center.x, center.y)
                                         .add(new v2(0, 100))
-                        }).setScale(0.3).setCircle(130),
+                        }).setScale(0.3),
                         new Part({
                                 name: 'ramp',
                                 scene: this,
@@ -152,7 +156,10 @@ class Part extends Phaser.GameObjects.Sprite {
                 super(config.scene, config.x, config.y, config.texture)
                 this.config = config
                 config.scene.add.existing(this)
-                config.scene.matter.add.gameObject(this, {}, true)
+                config.scene.matter.add.gameObject(this, {
+                        shape: config.shape,
+                        frictionStatic: 0
+                }, true)
                 this.setScale(0.2)
                 this.placed = false
 
@@ -199,9 +206,12 @@ class Part extends Phaser.GameObjects.Sprite {
 
         update() {
                 if (!this.placed) return
+
                 this.setPosition(this.config.endPos.x, this.config.endPos.y)
 
-                if (this.config.name != "wheel") this.angle = this.config.endAngle
+                if (this.config.name != "wheel") {
+                        this.angle = this.config.endAngle
+                }
                 if (this.config.name == "gear1") {
                         this.angle = this.scene.parts[0].angle
                 }
