@@ -4,6 +4,7 @@ class Puzzle extends Phaser.Scene {
                 this.load.image('wood', 'plank.jpg')
                 this.load.image('gear', 'gear.png')
                 this.load.image('droplet', 'white.png')
+                this.load.image('generator', 'bulb.png')
                 // this.load.image('axel', 'axel.png')
                 this.load.image('background', 'stream.jpg')
                 this.load.json("sprites", "sprite-physics.json");
@@ -113,7 +114,7 @@ class Puzzle extends Phaser.Scene {
                                 endAngle: 10,
                                 endPos: new v2(center.x, center.y)
                                         .add(new v2(-400, -120))
-                        }).setScale(0.3, 0.15).setRectangle(625, 30),
+                        }).setScale(0.3, 0.3).setRectangle(625, 30),
                         new Part({
                                 name: 'gear1',
                                 scene: this,
@@ -131,10 +132,10 @@ class Puzzle extends Phaser.Scene {
                                 x: 700,
                                 y: 400,
                                 texture: 'generator',
-                                endAngle: 90,
+                                endAngle: 0,
                                 endPos: new v2(center.x, center.y)
-                                        .add(new v2(300, -150))
-                        }),
+                                        .add(new v2(300, -250))
+                        }).setScale(0.05),
                         new Part({
                                 name: 'gear2',
                                 scene: this,
