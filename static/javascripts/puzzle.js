@@ -5,7 +5,6 @@ class Puzzle extends Phaser.Scene {
                 this.load.image('gear', 'gear.png')
                 this.load.image('droplet', 'white.png')
                 this.load.image('generator', 'bulb.png')
-                // this.load.image('axel', 'axel.png')
                 this.load.image('background', 'stream.jpg')
                 this.load.json("sprites", "sprite-physics.json");
         }
@@ -13,6 +12,7 @@ class Puzzle extends Phaser.Scene {
         create() {
                 this.puzzleCenter = new v2(config.width / 2, config.height / 2)
                 this.parts = this.createParts(this.puzzleCenter)
+                this.wheelAngle = 0
                 this.createWorld()
                 this.parts.forEach(p => p.setInteractive({
                         pixelPerfect: true,
@@ -43,7 +43,7 @@ class Puzzle extends Phaser.Scene {
                 this.createWater()
         }
 
-        createWater(dropCount = 200, dropsPerSecond = 50, mass = 3) {
+        createWater(dropCount = 100, dropsPerSecond = 50, mass = 3) {
 
                 const groupConfig = {
                         maxSize: dropCount,
@@ -63,7 +63,7 @@ class Puzzle extends Phaser.Scene {
 
                 this.pool = this.add.group(groupConfig) // river
                 this.drops = this.add.group(groupConfig) // waterfall
-                create(this.pool)
+                create(this.pool, 10)
                 create(this.drops)
                 new Phaser.Core.TimeStep(this.game, {
                         forceSetTimeOut: true,
@@ -73,11 +73,9 @@ class Puzzle extends Phaser.Scene {
                         if (drop) drop.active = true
 
                         const drop2 = this.pool.get(Math.floor(Math.random() * 700),
-                                config.height - Math.floor(Math.random() * 50))
+                                config.height - Math.floor(Math.random() * 100))
                         if (!drop2) return
                         drop2.active = true
-                        this.matter.setVelocityX(drop2, 15)
-                        this.matter.setVelocityY(drop2, Math.random() * -10)
                 })
         }
 
@@ -85,10 +83,18 @@ class Puzzle extends Phaser.Scene {
                 this.parts.forEach(p => p.update())
                 this.drops.getChildren().forEach((d) => {
                         if (d.y > config.height - 25) this.drops.kill(d)
+                        if (this.winCondition()) {
+                                // light up bulb
+                        }
                 })
-                this.pool.getChildren().forEach((d) => {
-                        if (Math.random() < 0.1) this.pool.kill(d)
+        }
+
+        winCondition() {
+                this.parts.forEach(p => { // ensure all parts placed
+                        if (!p.placed) return
                 })
+                if ((this.wheelAngle - this.parts[0].angle) > 10) {}
+                this.wheelAngle = this.parts[0].angle
         }
 
         createParts(center) {
@@ -108,8 +114,8 @@ class Puzzle extends Phaser.Scene {
                         new Part({
                                 name: 'ramp',
                                 scene: this,
-                                x: 200,
-                                y: 400,
+                                x: 600,
+                                y: 600,
                                 texture: 'wood',
                                 endAngle: 10,
                                 endPos: new v2(center.x, center.y)

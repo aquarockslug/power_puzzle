@@ -73,7 +73,7 @@ class Puzzle extends Phaser.Scene {
                         if (drop) drop.active = true
 
                         const drop2 = this.pool.get(Math.floor(Math.random() * 700),
-                                config.height - Math.floor(Math.random() * 50))
+                                config.height - Math.floor(Math.random() * 100))
                         if (!drop2) return
                         drop2.active = true
                         this.matter.setVelocityX(drop2, 15)
