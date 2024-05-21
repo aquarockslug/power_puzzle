@@ -43,7 +43,7 @@ class Puzzle extends Phaser.Scene {
                 this.createWater()
         }
 
-        createWater(dropCount = 100, dropsPerSecond = 50, mass = 3) {
+        createWater(dropCount = 50, dropsPerSecond = 25, mass = 3) {
 
                 const groupConfig = {
                         maxSize: dropCount,
@@ -61,9 +61,7 @@ class Puzzle extends Phaser.Scene {
                 const create = (dropGroup, repeat = dropCount - 1) =>
                         dropGroup.createMultiple(repeat)
 
-                this.pool = this.add.group(groupConfig) // river
                 this.drops = this.add.group(groupConfig) // waterfall
-                create(this.pool, 10)
                 create(this.drops)
                 new Phaser.Core.TimeStep(this.game, {
                         forceSetTimeOut: true,
@@ -71,11 +69,6 @@ class Puzzle extends Phaser.Scene {
                 }).start((time, delta) => {
                         const drop = this.drops.get(15 + Math.floor(Math.random() * 125), 5)
                         if (drop) drop.active = true
-
-                        const drop2 = this.pool.get(Math.floor(Math.random() * 700),
-                                config.height - Math.floor(Math.random() * 100))
-                        if (!drop2) return
-                        drop2.active = true
                 })
         }
 
@@ -83,18 +76,21 @@ class Puzzle extends Phaser.Scene {
                 this.parts.forEach(p => p.update())
                 this.drops.getChildren().forEach((d) => {
                         if (d.y > config.height - 25) this.drops.kill(d)
-                        if (this.winCondition()) {
-                                // light up bulb
-                        }
                 })
+                if (this.winCondition()) {
+                        console.log('win')
+                        // this.parts[3].postFX.addGlow(0xffff00, 8, 8, true, 0.1, 24);
+                } else {
+                        this.wheelAngle = this.parts[0].angle
+                }
         }
 
         winCondition() {
                 this.parts.forEach(p => { // ensure all parts placed
-                        if (!p.placed) return
+                        if (!p.placed) return false
                 })
-                if ((this.wheelAngle - this.parts[0].angle) > 10) {}
-                this.wheelAngle = this.parts[0].angle
+                if ((this.wheelAngle - this.parts[0].angle) > 150) return true
+                return false
         }
 
         createParts(center) {
